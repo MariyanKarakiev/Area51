@@ -20,7 +20,7 @@ var agentsInBase = new List<Agent>();
 int calledOnFloor = 2;
 
 
-Parallel.For(0, 4, i =>
+Parallel.For(0, 2, i =>
 {
     agentsInBase.Add(new Agent("00" + i.ToString(), (SecurityLevelEnum)rand.Next(0, 3), elevator));
 });
