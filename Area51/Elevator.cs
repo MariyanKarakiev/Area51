@@ -11,69 +11,65 @@ namespace Area51
 {
     public class Elevator
     {
-
-        CancellationToken token;
-
         ManualResetEvent leaveElevator;
-        CancellationTokenSource cts = new CancellationTokenSource();
-
+        public int CurrentFloor { get; private set; }
         public List<int> Queue { get; set; } = new List<int>();
-        public int currentFloor { get; private set; }
-
-
         public List<Agent> AgentsOnBoard { get; set; } = new List<Agent>();
 
         public Elevator(ManualResetEvent _leaveElevator)
         {
-            token = cts.Token;
             leaveElevator = _leaveElevator;
         }
+
         // HttpClient implements IDisposable by mistake. Use it with static 
         //Mark Troegisen 
-        public void Start()
+        public void Start(CancellationToken token)
         {
             var elevatorThr = new Thread(() =>
             {
-                while (true)
+                while (!token.IsCancellationRequested)
                 {
-                    if (token.IsCancellationRequested)
+                    if (Queue.Count != 0)
                     {
-                        break;
-                    }
-
-                    if (Queue.Count == 0)
-                    {
-                        continue;
-                    }
-
-                    Console.WriteLine($"Current floor {currentFloor}-{(FloorsEnum)currentFloor}");
-
-                    lock (Queue)
-                    {
-                        var selectedFloor = Queue.First();
-
-                        if (selectedFloor > currentFloor)
+                        Console.WriteLine($"Current floor {CurrentFloor}-{(FloorsEnum)CurrentFloor}");
+                       
+                        lock (Queue)
                         {
-                            currentFloor++;
-                        }
+                            var selectedFloor = Queue.First();
 
-                        else if (selectedFloor < currentFloor)
-                        {
-                            currentFloor--;
-                        }
-
-                        else
-                        {
-                            TryOpenDoor(currentFloor);
-                            lock (Queue)
+                            if (selectedFloor > CurrentFloor)
                             {
-                                Queue.Remove(currentFloor);
+                                CurrentFloor++;
                             }
 
-                            Thread.Sleep(500);         
+                            else if (selectedFloor < CurrentFloor)
+                            {
+                                CurrentFloor--;
+                            }
+
+                            else
+                            {
+                                if (AgentsOnBoard.Count != 0)
+                                {
+                                    TryOpenDoor(CurrentFloor);
+                                   
+                                    lock (Queue)
+                                    {
+                                        Queue.RemoveAll(a => a == CurrentFloor);
+                                    }
+
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"Elevator is empty!");
+                                   
+                                    leaveElevator.Set();
+                                    Thread.Sleep(1000);
+                                    leaveElevator.Reset();
+                                }
+                            }
                         }
                     }
-
                     Thread.Sleep(1000);
                 }
             });
@@ -83,31 +79,32 @@ namespace Area51
 
         public void TryOpenDoor(int floor)
         {
-            if (AgentsOnBoard.Count == 0)
-            {
-                Console.WriteLine($"Elevator is empty!");
-                leaveElevator.Set();
-                leaveElevator.Reset();
-                return;
-            }
+            var agentsLeaving = AgentsOnBoard.Where(a => a.SelectedFloor == CurrentFloor).ToList();
 
-            var agentsWithAccess = AgentsOnBoard.Where(a => a.FloorsCanAccess.Contains((FloorsEnum)floor) && a.SelectedFloor == currentFloor).ToList();
-
-            if (agentsWithAccess.Count != 0)
+            if (agentsLeaving.Count != 0)
             {
-                Console.WriteLine($"Door opens for agent {string.Join(", ", agentsWithAccess.Select(a => a.Name))}!");
-                agentsWithAccess.ForEach(a => { a.IsLeaving = true; a.CurrentFloor = floor; });
-                leaveElevator.Set();
-                leaveElevator.Reset();
-              
-            }
+                Console.WriteLine($"Agent/s {string.Join(", ", agentsLeaving.Select(a => a.Name))} selected this floor - they want to leave.");
 
-            else
-            {
-                Console.WriteLine($"Agent/s {string.Join(", ", AgentsOnBoard.Select(a => a.Name))} does not have access to this floor!");
+                var agentsWithAccess = agentsLeaving.Where(a => a.FloorsCanAccess.Contains((FloorsEnum)floor)).ToList();
+                var agentsWithoutAccess = agentsLeaving.Where(a => !a.FloorsCanAccess.Contains((FloorsEnum)floor)).ToList();
+
+                if (agentsWithoutAccess.Count != 0)
+                {
+                    Console.WriteLine($"Agent/s {string.Join(", ", agentsWithoutAccess.Select(a => a.Name))} - Access denied!");
+                }
+
+                if (agentsWithAccess.Count != 0)
+                {
+                    Console.WriteLine($"Door opens for Agent/s {string.Join(", ", agentsWithAccess.Select(a => a.Name))}!");
+                    lock (agentsWithAccess)
+                    {
+
+                        agentsWithAccess.ForEach(a => { a.IsLeavingElevator = true; a.CurrentFloor = floor; });
+                    }
+                    leaveElevator.Set();
+                    leaveElevator.Reset();
+                }
             }
         }
-
-
     }
 }

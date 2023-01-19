@@ -13,7 +13,8 @@ namespace Area51
         public string Name { get; private set; }
         public int CurrentFloor { get; set; }
         public int SelectedFloor { get; set; }
-        public bool IsLeaving { get; set; }
+        public bool IsLeavingElevator { get; set; }
+        public bool AccessDenied { get; set; }
         public SecurityLevelEnum SecurityLevel { get; private set; }
         public List<FloorsEnum> FloorsCanAccess { get; private set; }
 
@@ -44,7 +45,10 @@ namespace Area51
             }
         }
 
+        public void Start(CancellationToken token)
+        {
 
+        }
         public void SelectFloor(Button button)
         {
            SelectedFloor = button.PressRandomButton(elevator);

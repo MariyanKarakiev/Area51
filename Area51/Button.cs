@@ -29,7 +29,7 @@ namespace Area51
 
         public int PressRandomButton(Elevator elevator)
         {
-            var floor = rnd.Next(0, 4);
+            var floor = rnd.Next(1, 4);
 
             lock (elevator.Queue)
             {

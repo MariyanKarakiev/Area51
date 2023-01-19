@@ -3,6 +3,8 @@ using Area51.Enum;
 using System.Dynamic;
 
 var rand = new Random();
+CancellationTokenSource cts = new CancellationTokenSource();
+CancellationToken token = cts.Token;
 var leaveElevator = new ManualResetEvent(false);
 var elevator = new Elevator(leaveElevator);
 var semaphore = new Semaphore(0, 4);
@@ -18,15 +20,16 @@ Parallel.For(0, 4, i =>
 });
 
 
-elevator.Start();
+elevator.Start(token);
 
 foreach (var agent in agentsInBase)
 {
     var agentThr = new Thread(() =>
     {
+        while (!token.IsCancellationRequested) { 
         agent.CallElevator(button);
 
-        if (elevator.currentFloor == agent.CurrentFloor)
+        if (elevator.CurrentFloor == agent.CurrentFloor)
         {
             leaveElevator.WaitOne();
             agent.GetIn(button);
@@ -36,16 +39,18 @@ foreach (var agent in agentsInBase)
         while (elevator.AgentsOnBoard.Contains(agent))
         {
             leaveElevator.WaitOne();
-            if (agent.IsLeaving)
+            if (agent.IsLeavingElevator)
             {
                 agent.Leave();
             }
         }
-
+        }
     });
     agentThr.Start();
 }
 
+
+Thread.Sleep(10000);
 Console.ReadKey();
 
 
