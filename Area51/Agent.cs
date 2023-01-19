@@ -9,19 +9,20 @@ namespace Area51
 {
     public class Agent
     {
+        private Random rand = new Random();
         private Elevator elevator;
+        private object lockBool = new object();
         public string Name { get; private set; }
         public int CurrentFloor { get; set; }
         public int SelectedFloor { get; set; }
-        public bool IsLeavingElevator { get; set; }
-        public bool AccessDenied { get; set; }
+        public bool LeftElevator { get; set; } = true;
+
         public SecurityLevelEnum SecurityLevel { get; private set; }
         public List<FloorsEnum> FloorsCanAccess { get; private set; }
 
         public Agent(string name, SecurityLevelEnum securityLevel, Elevator _elevator)
         {
             Name = name;
-            CurrentFloor = 0;
             SecurityLevel = securityLevel;
             elevator = _elevator;
 
@@ -49,31 +50,47 @@ namespace Area51
         {
 
         }
+
         public void SelectFloor(Button button)
         {
-           SelectedFloor = button.PressRandomButton(elevator);
+            var randomFloor = rand.Next(0, 4);
+
+            while (randomFloor == CurrentFloor)
+            {
+                randomFloor = rand.Next(0, 4);
+            }
+
+            button.PressButton(randomFloor, elevator);
+
+            SelectedFloor = randomFloor;
             Console.WriteLine($"Agent {this.Name} pressed {SelectedFloor} ");
         }
 
         public void CallElevator(Button button)
         {
             button.PressButton(CurrentFloor, elevator);
+            Console.WriteLine($"Agent {this.Name} called the elevator on {CurrentFloor} ");
         }
 
-        public void Leave()
+        public void Leave(int floor)
         {
             lock (elevator.AgentsOnBoard)
             {
                 elevator.AgentsOnBoard.Remove(this);
             }
-            Console.WriteLine($"Agent {this.Name} leaves the elevator.");
+
+            CurrentFloor = floor;
+            LeftElevator = true;
+
+            Console.WriteLine($"Agent {this.Name} leaves the elevator on floor {CurrentFloor}.");
+            //Waits before call the elevator again
         }
 
         public void GetIn(Button button)
         {
             elevator.AgentsOnBoard.Add(this);
-            Console.WriteLine($"Agent {this.Name} is in the elevator.");
-
+            LeftElevator = false;
+            Console.WriteLine($"Agent {this.Name} gets in the elevator on floor {CurrentFloor}.");
         }
     }
 }

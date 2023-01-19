@@ -11,100 +11,112 @@ namespace Area51
 {
     public class Elevator
     {
-        ManualResetEvent leaveElevator;
+        private object obj = new object();
+        private Button button;
+        ManualResetEvent callElevator;
         public int CurrentFloor { get; private set; }
         public List<int> Queue { get; set; } = new List<int>();
         public List<Agent> AgentsOnBoard { get; set; } = new List<Agent>();
 
-        public Elevator(ManualResetEvent _leaveElevator)
+        public Elevator(ManualResetEvent _leaveElevator, Button _button)
         {
-            leaveElevator = _leaveElevator;
+            callElevator = _leaveElevator;
+            button = _button;
         }
 
         // HttpClient implements IDisposable by mistake. Use it with static 
         //Mark Troegisen 
-        public void Start(CancellationToken token)
+        public void Start(CancellationToken token, ManualResetEvent getInTheElevator)
         {
             var elevatorThr = new Thread(() =>
             {
-                while (!token.IsCancellationRequested)
+                while (true)
                 {
-                    if (Queue.Count != 0)
+                    if (Queue.Count == 0)
                     {
-                        Console.WriteLine($"Current floor {CurrentFloor}-{(FloorsEnum)CurrentFloor}");
-                       
-                        lock (Queue)
-                        {
-                            var selectedFloor = Queue.First();
-
-                            if (selectedFloor > CurrentFloor)
-                            {
-                                CurrentFloor++;
-                            }
-
-                            else if (selectedFloor < CurrentFloor)
-                            {
-                                CurrentFloor--;
-                            }
-
-                            else
-                            {
-                                if (AgentsOnBoard.Count != 0)
-                                {
-                                    TryOpenDoor(CurrentFloor);
-                                   
-                                    lock (Queue)
-                                    {
-                                        Queue.RemoveAll(a => a == CurrentFloor);
-                                    }
-
-                                }
-                                else
-                                {
-                                    Console.WriteLine($"Elevator is empty!");
-                                   
-                                    leaveElevator.Set();
-                                    Thread.Sleep(1000);
-                                    leaveElevator.Reset();
-                                }
-                            }
-                        }
+                        continue;
                     }
-                    Thread.Sleep(1000);
+
+                    Console.WriteLine($"Current floor {CurrentFloor}-{(FloorsEnum)CurrentFloor}");
+
+                    var selectedFloor = Queue.First();
+
+                    if (selectedFloor > CurrentFloor)
+                    {
+                        CurrentFloor++;
+                    }
+
+                    else if (selectedFloor < CurrentFloor)
+                    {
+                        CurrentFloor--;
+                    }
+
+                    else
+                    {
+                        TryOpenDoor(CurrentFloor, getInTheElevator);
+                        Queue.RemoveAll(c => c == CurrentFloor);
+
+                       
+                    //   Thread.Sleep(0);
+                       
+                    }
+                    Thread.Sleep(600);
                 }
             });
             elevatorThr.Start();
         }
 
 
-        public void TryOpenDoor(int floor)
+        public void TryOpenDoor(int floor, ManualResetEvent getInTheElevator)
         {
+            callElevator.Set();
             var agentsLeaving = AgentsOnBoard.Where(a => a.SelectedFloor == CurrentFloor).ToList();
 
-            if (agentsLeaving.Count != 0)
+            if (AgentsOnBoard.Count != 0)
             {
-                Console.WriteLine($"Agent/s {string.Join(", ", agentsLeaving.Select(a => a.Name))} selected this floor - they want to leave.");
-
-                var agentsWithAccess = agentsLeaving.Where(a => a.FloorsCanAccess.Contains((FloorsEnum)floor)).ToList();
-                var agentsWithoutAccess = agentsLeaving.Where(a => !a.FloorsCanAccess.Contains((FloorsEnum)floor)).ToList();
-
-                if (agentsWithoutAccess.Count != 0)
+                if (agentsLeaving.Count != 0)
                 {
-                    Console.WriteLine($"Agent/s {string.Join(", ", agentsWithoutAccess.Select(a => a.Name))} - Access denied!");
-                }
+                    Console.WriteLine($"Agent/s {string.Join(", ", agentsLeaving.Select(a => a.Name))} selected this floor - they want to leave.");
 
-                if (agentsWithAccess.Count != 0)
-                {
-                    Console.WriteLine($"Door opens for Agent/s {string.Join(", ", agentsWithAccess.Select(a => a.Name))}!");
-                    lock (agentsWithAccess)
+                    var agentsWithAccess = agentsLeaving.Where(a => a.FloorsCanAccess.Contains((FloorsEnum)floor)).ToList();
+                    var agentsWithoutAccess = agentsLeaving.Where(a => !a.FloorsCanAccess.Contains((FloorsEnum)floor)).ToList();
+
+                    if (agentsWithAccess.Count != 0)
                     {
+                        Console.WriteLine($"Door opens for Agent/s {string.Join(", ", agentsWithAccess.Select(a => a.Name))}!");
 
-                        agentsWithAccess.ForEach(a => { a.IsLeavingElevator = true; a.CurrentFloor = floor; });
+                        lock (agentsWithAccess)
+                        {
+                            agentsWithAccess.ForEach(a =>
+                            {
+                                lock (obj)
+                                {
+                                    a.Leave(CurrentFloor);
+                                }
+                            });
+                        }
                     }
-                    leaveElevator.Set();
-                    leaveElevator.Reset();
+
+                    if (agentsWithoutAccess.Count != 0)
+                    {
+                        Console.WriteLine($"Agent/s {string.Join(", ", agentsWithoutAccess.Select(a => a.Name))} - Access denied!");
+
+                        lock (agentsWithoutAccess)
+                        {
+                            agentsWithoutAccess.ForEach(a =>
+                            {
+                                a.CurrentFloor = CurrentFloor;
+                                a.SelectFloor(button);
+                            });
+                        }
+                    }
                 }
             }
+            else
+            {
+                Console.WriteLine($"Elevator is empty!");
+            }
+            callElevator.Reset();
         }
     }
 }
