@@ -51,6 +51,7 @@ foreach (var agent in agentsInBase)
 
 
 Thread.Sleep(10000);
+cts.Cancel();
 Console.ReadKey();
 
 
