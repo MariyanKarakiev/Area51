@@ -9,9 +9,9 @@ namespace Area51
 {
     public class Agent
     {
-        private Random rand = new Random();
+        private Random rand = new Random();        
         private Elevator elevator;
-        private object lockBool = new object();
+
         public string Name { get; private set; }
         public int CurrentFloor { get; set; }
         public int SelectedFloor { get; set; }
@@ -61,15 +61,14 @@ namespace Area51
             }
 
             button.PressButton(randomFloor, elevator);
-
             SelectedFloor = randomFloor;
-            Console.WriteLine($"Agent {this.Name} pressed {SelectedFloor} ");
+            Console.WriteLine($"Agent {this.Name} pressed {SelectedFloor}-{(FloorsEnum)CurrentFloor} button in the elevator.");
         }
 
         public void CallElevator(Button button)
         {
             button.PressButton(CurrentFloor, elevator);
-            Console.WriteLine($"Agent {this.Name} called the elevator on {CurrentFloor} ");
+            Console.WriteLine($"Agent {this.Name} pressed button on {CurrentFloor}-{(FloorsEnum)CurrentFloor} and called the elevator");
         }
 
         public void Leave(int floor)
@@ -82,7 +81,7 @@ namespace Area51
             CurrentFloor = floor;
             LeftElevator = true;
 
-            Console.WriteLine($"Agent {this.Name} leaves the elevator on floor {CurrentFloor}.");
+            Console.WriteLine($"Agent {this.Name} leaves the elevator on floor {CurrentFloor}-{(FloorsEnum)CurrentFloor}.");
             //Waits before call the elevator again
         }
 
@@ -90,7 +89,7 @@ namespace Area51
         {
             elevator.AgentsOnBoard.Add(this);
             LeftElevator = false;
-            Console.WriteLine($"Agent {this.Name} gets in the elevator on floor {CurrentFloor}.");
+            Console.WriteLine($"Agent {this.Name} gets in the elevator on floor {CurrentFloor}-{(FloorsEnum)CurrentFloor}.");
         }
     }
 }

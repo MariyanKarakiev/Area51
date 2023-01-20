@@ -37,33 +37,33 @@ namespace Area51
 
                     lock (Queue)
                     {
-                        // var uniqueElementsQueue = Queue.Distinct().ToList();
                         if (Queue.Count == 0)
                         {
                             continue;
                         }
+
+
+                        Console.WriteLine($"Current floor {CurrentFloor}-{(FloorsEnum)CurrentFloor}");
+
+                        var selectedFloor = Queue.First();
+
+                        if (selectedFloor > CurrentFloor)
+                        {
+                            CurrentFloor++;
+                        }
+
+                        else if (selectedFloor < CurrentFloor)
+                        {
+                            CurrentFloor--;
+                        }
+
+                        else
+                        {
+                            Queue.RemoveAll(c => c == CurrentFloor);
+                            OpenDoor(CurrentFloor, getInTheElevator, countdownEvent);
+                        }
+                        Thread.Sleep(900);
                     }
-
-                    Console.WriteLine($"Current floor {CurrentFloor}-{(FloorsEnum)CurrentFloor}");
-
-                    var selectedFloor = Queue.First();
-
-                    if (selectedFloor > CurrentFloor)
-                    {
-                        CurrentFloor++;
-                    }
-
-                    else if (selectedFloor < CurrentFloor)
-                    {
-                        CurrentFloor--;
-                    }
-
-                    else
-                    {
-                        Queue.RemoveAll(c => c == CurrentFloor);
-                        OpenDoor(CurrentFloor, getInTheElevator, countdownEvent);
-                    }
-                    Thread.Sleep(600);
                 }
             });
             elevatorThr.Start();
@@ -81,7 +81,7 @@ namespace Area51
             {
                 if (agentsLeaving.Count != 0)
                 {
-                    Console.WriteLine($"Agent/s {string.Join(", ", agentsLeaving.Select(a => a.Name))} selected this floor - they want to leave.");
+                    Console.WriteLine($"Agent/s {string.Join(", ", agentsLeaving.Select(a => a.Name))} selected this floor - trying to leave.");
 
                     var agentsWithAccess = agentsLeaving.Where(a => a.FloorsCanAccess.Contains((FloorsEnum)floor)).ToList();
                     var agentsWithoutAccess = agentsLeaving.Where(a => !a.FloorsCanAccess.Contains((FloorsEnum)floor)).ToList();
@@ -124,7 +124,9 @@ namespace Area51
 
 
             countdownEvent.AddParticipant();
-            countdownEvent.SignalAndWait(300);
+
+            //Elevator waits 1 sec for passngers to get in or out
+            countdownEvent.SignalAndWait(0);
 
             Console.WriteLine($"Door closes!");
         }

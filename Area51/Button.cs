@@ -16,15 +16,19 @@ namespace Area51
         }
 
         public bool IsPressed { get; private set; }
-        public int ButtonPressed { get; private set; }
 
-
-        public void PressButton(int floor, Elevator elevator)
+        public void PressButton(int floor,Elevator elevator)
         {
             lock (elevator.Queue)
             {
                 elevator.Queue.Add(floor);
             }
+            IsPressed= true;
+        }
+
+        public void ResetButton()
+        {
+            IsPressed = false;
         }
 
         public int PressRandomButton(Elevator elevator)
