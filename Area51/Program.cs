@@ -17,7 +17,7 @@ var elevator = new Elevator(callElevator, button);
 var agentsInBase = new List<Agent>();
 
 
-Parallel.For(0, 2, i =>
+Parallel.For(0, 4, i =>
 {
     agentsInBase.Add(new Agent("00" + i.ToString(), (SecurityLevelEnum)rand.Next(0, 3), elevator));
 });
