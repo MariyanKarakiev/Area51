@@ -35,6 +35,12 @@ namespace Area51
                     callElevator.Set();
                     callElevator.Reset();
 
+                    if (token.IsCancellationRequested && Queue.Count == 00 && AgentsOnBoard.Count == 0)
+                    {
+                        Console.WriteLine("Elevator stoped!");
+                        break;
+                    }
+
                     lock (Queue)
                     {
                         // var uniqueElementsQueue = Queue.Distinct().ToList();
@@ -42,7 +48,6 @@ namespace Area51
                         {
                             continue;
                         }
-
                     }
                     Console.WriteLine($"Current floor {CurrentFloor}-{(FloorsEnum)CurrentFloor}");
 
@@ -57,7 +62,6 @@ namespace Area51
                     {
                         CurrentFloor--;
                     }
-
                     else
                     {
                         Queue.RemoveAll(c => c == CurrentFloor);
@@ -75,56 +79,60 @@ namespace Area51
             Console.WriteLine($"Door opens!");
             getInTheElevator.Set();
             getInTheElevator.Reset();
-            var agentsLeaving = AgentsOnBoard.Where(a => a.SelectedFloor == CurrentFloor).ToList();
+
 
             if (AgentsOnBoard.Count != 0)
             {
-                if (agentsLeaving.Count != 0)
+                lock (AgentsOnBoard)
                 {
-                    Console.WriteLine($"Agent/s {string.Join(", ", agentsLeaving.Select(a => a.Name))} selected this floor - they want to leave.");
-
-                    var agentsWithAccess = agentsLeaving.Where(a => a.FloorsCanAccess.Contains((FloorsEnum)floor)).ToList();
-                    var agentsWithoutAccess = agentsLeaving.Where(a => !a.FloorsCanAccess.Contains((FloorsEnum)floor)).ToList();
-
-                    if (agentsWithAccess.Count != 0)
+                    var agentsLeaving = AgentsOnBoard.Where(a => a.SelectedFloor == CurrentFloor).ToList();
+                    if (agentsLeaving.Count != 0)
                     {
-                        Console.WriteLine($"Door opens for Agent/s {string.Join(", ", agentsWithAccess.Select(a => a.Name))}!");
+                        Console.WriteLine($"Agent/s {string.Join(", ", agentsLeaving.Select(a => a.Name))} selected this floor - trying to leave.");
 
-                        lock (agentsWithAccess)
+                        var agentsWithAccess = agentsLeaving.Where(a => a.FloorsCanAccess.Contains((FloorsEnum)floor)).ToList();
+                        var agentsWithoutAccess = agentsLeaving.Where(a => !a.FloorsCanAccess.Contains((FloorsEnum)floor)).ToList();
+
+                        if (agentsWithAccess.Count != 0)
                         {
-                            agentsWithAccess.ForEach(a =>
+                            Console.WriteLine($"Door opens for Agent/s {string.Join(", ", agentsWithAccess.Select(a => a.Name))}!");
+
+                            lock (agentsWithAccess)
                             {
-                                lock (obj)
+                                agentsWithAccess.ForEach(a =>
                                 {
-                                    a.Leave(CurrentFloor);
-                                }
-                            });
+                                    lock (obj)
+                                    {
+                                        a.Leave(CurrentFloor);
+                                    }
+                                });
+                            }
                         }
-                    }
 
-                    if (agentsWithoutAccess.Count != 0)
-                    {
-                        Console.WriteLine($"Agent/s {string.Join(", ", agentsWithoutAccess.Select(a => a.Name))} - Access denied!");
-
-                        lock (agentsWithoutAccess)
+                        if (agentsWithoutAccess.Count != 0)
                         {
-                            agentsWithoutAccess.ForEach(a =>
+                            Console.WriteLine($"Agent/s {string.Join(", ", agentsWithoutAccess.Select(a => a.Name))} - Access denied!");
+
+                            lock (agentsWithoutAccess)
                             {
-                                a.CurrentFloor = CurrentFloor;
-                                a.SelectFloor(button);
-                            });
+                                agentsWithoutAccess.ForEach(a =>
+                                {
+                                    a.CurrentFloor = CurrentFloor;
+                                    a.SelectFloor(button);
+                                });
+                            }
                         }
                     }
                 }
             }
+
             else
             {
                 Console.WriteLine($"Elevator is empty!");
             }
 
-
             countdownEvent.AddParticipant();
-            countdownEvent.SignalAndWait(500);
+            countdownEvent.SignalAndWait(1000);
 
             Console.WriteLine($"Door closes!");
         }
