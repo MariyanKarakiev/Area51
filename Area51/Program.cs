@@ -9,15 +9,12 @@ CancellationToken token = cts.Token;
 
 var getInTheElevator = new ManualResetEvent(false);
 var callElevator = new ManualResetEvent(false);
-var semaphore = new Semaphore(0, 4);
+
+Barrier barrier = new Barrier(0);
 
 var button = new Button();
 var elevator = new Elevator(callElevator, button);
-
 var agentsInBase = new List<Agent>();
-
-int calledOnFloor = 2;
-
 
 Parallel.For(0, 2, i =>
 {
