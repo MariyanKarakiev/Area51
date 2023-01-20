@@ -26,15 +26,22 @@ namespace Area51
 
         // HttpClient implements IDisposable by mistake. Use it with static 
         //Mark Troegisen 
-        public void Start(CancellationToken token, ManualResetEvent getInTheElevator)
+        public void Start(CancellationToken token, ManualResetEvent getInTheElevator, Barrier countdownEvent)
         {
             var elevatorThr = new Thread(() =>
             {
                 while (true)
                 {
-                    if (Queue.Count == 0)
+                    callElevator.Set();
+                    callElevator.Reset();
+
+                    lock (Queue)
                     {
-                        continue;
+                        // var uniqueElementsQueue = Queue.Distinct().ToList();
+                        if (Queue.Count == 0)
+                        {
+                            continue;
+                        }
                     }
 
                     Console.WriteLine($"Current floor {CurrentFloor}-{(FloorsEnum)CurrentFloor}");
@@ -53,12 +60,8 @@ namespace Area51
 
                     else
                     {
-                        TryOpenDoor(CurrentFloor, getInTheElevator);
                         Queue.RemoveAll(c => c == CurrentFloor);
-
-                       
-                    //   Thread.Sleep(0);
-                       
+                        OpenDoor(CurrentFloor, getInTheElevator, countdownEvent);
                     }
                     Thread.Sleep(600);
                 }
@@ -67,9 +70,11 @@ namespace Area51
         }
 
 
-        public void TryOpenDoor(int floor, ManualResetEvent getInTheElevator)
+        public void OpenDoor(int floor, ManualResetEvent getInTheElevator, Barrier countdownEvent)
         {
-            callElevator.Set();
+            Console.WriteLine($"Door opens!");
+            getInTheElevator.Set();
+            getInTheElevator.Reset();
             var agentsLeaving = AgentsOnBoard.Where(a => a.SelectedFloor == CurrentFloor).ToList();
 
             if (AgentsOnBoard.Count != 0)
@@ -116,7 +121,12 @@ namespace Area51
             {
                 Console.WriteLine($"Elevator is empty!");
             }
-            callElevator.Reset();
+
+
+            countdownEvent.AddParticipant();
+            countdownEvent.SignalAndWait(300);
+
+            Console.WriteLine($"Door closes!");
         }
     }
 }
