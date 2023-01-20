@@ -34,6 +34,8 @@ foreach (var agent in agentsInBase)
             if (token.IsCancellationRequested)
             {
             }
+            Thread.Sleep(rand.Next(500, 2600));
+            //while (!agent.LeftElevator) { Thread.Sleep(0); }           
 
             callElevator.WaitOne();
 
@@ -48,6 +50,7 @@ foreach (var agent in agentsInBase)
             agent.SelectFloor(button);
             barrier.SignalAndWait();
 
+            //cde.Signal();
         }
     });
     agentThr.Start();
