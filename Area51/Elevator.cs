@@ -42,8 +42,8 @@ namespace Area51
                         {
                             continue;
                         }
-                    }
 
+                    }
                     Console.WriteLine($"Current floor {CurrentFloor}-{(FloorsEnum)CurrentFloor}");
 
                     var selectedFloor = Queue.First();
@@ -63,7 +63,7 @@ namespace Area51
                         Queue.RemoveAll(c => c == CurrentFloor);
                         OpenDoor(CurrentFloor, getInTheElevator, countdownEvent);
                     }
-                    Thread.Sleep(600);
+                    Thread.Sleep(1000);
                 }
             });
             elevatorThr.Start();
@@ -124,7 +124,7 @@ namespace Area51
 
 
             countdownEvent.AddParticipant();
-            countdownEvent.SignalAndWait(300);
+            countdownEvent.SignalAndWait(500);
 
             Console.WriteLine($"Door closes!");
         }

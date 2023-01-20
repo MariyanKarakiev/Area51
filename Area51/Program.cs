@@ -32,28 +32,29 @@ foreach (var agent in agentsInBase)
 {
     var agentThr = new Thread(() =>
     {
-        for (int i = 0; i < 1; i++)
+        for (int i = 0; i < 2; i++)
         {
             if (token.IsCancellationRequested)
             {
             }
-            Thread.Sleep(rand.Next(500, 2600));
-            //while (!agent.LeftElevator) { Thread.Sleep(0); }           
+
+            while (!agent.LeftElevator) { Thread.Sleep(0); }
 
             callElevator.WaitOne();
 
             agent.CallElevator(button);
 
-            //pass elevator to mthd
-            while ( elevator.CurrentFloor != agent.CurrentFloor) { Thread.Sleep(10); }
-            // cde.AddCount(1);
+
+            while (elevator.CurrentFloor != agent.CurrentFloor) { Thread.Sleep(10); }
+
             bar.AddParticipant();
             getInTheElevator.WaitOne();
+
             agent.GetIn(button);
             agent.SelectFloor(button);
-            bar.SignalAndWait();
 
-            //cde.Signal();
+            bar.SignalAndWait();
+            Thread.Sleep(rand.Next(500, 2600));
         }
     });
     agentThr.Start();
