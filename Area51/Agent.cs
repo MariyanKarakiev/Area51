@@ -12,14 +12,6 @@ namespace Area51
         private Random rand = new Random();
         private Elevator elevator;
 
-        public string Name { get; private set; }
-        public int CurrentFloor { get; set; }
-        public int SelectedFloor { get; set; }
-        public bool LeftElevator { get; set; } = true;
-
-        public SecurityLevelEnum SecurityLevel { get; private set; }
-        public List<FloorsEnum> FloorsCanAccess { get; private set; }
-
         public Agent(string name, SecurityLevelEnum securityLevel, Elevator _elevator)
         {
             Name = name;
@@ -45,11 +37,14 @@ namespace Area51
                     }
             }
         }
+        public string Name { get; private set; }
+        public int CurrentFloor { get; set; }
+        public int SelectedFloor { get; set; }
+        public bool LeftElevator { get; set; } = true;
 
-        public void Start(CancellationToken token)
-        {
+        public SecurityLevelEnum SecurityLevel { get; private set; }
+        public List<FloorsEnum> FloorsCanAccess { get; private set; }
 
-        }
 
         public void SelectFloor(Button button)
         {
@@ -64,6 +59,7 @@ namespace Area51
             SelectedFloor = randomFloor;
             Console.WriteLine($"Agent {this.Name} pressed {SelectedFloor}-{(FloorsEnum)CurrentFloor} button in the elevator.");
         }
+
         public void SelectFloor(int floor, Button button)
         {
             button.PressButton(0, elevator);
@@ -88,7 +84,6 @@ namespace Area51
             LeftElevator = true;
 
             Console.WriteLine($"Agent {this.Name} leaves the elevator on floor {CurrentFloor}-{(FloorsEnum)CurrentFloor}.");
-            //Waits before call the elevator again
         }
 
         public void GetIn(Button button)

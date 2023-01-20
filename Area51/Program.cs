@@ -2,6 +2,16 @@
 using Area51.Enum;
 using System.Dynamic;
 
+
+// The elevator can carry a lot of agents. A limit can be set with Semaphore class, but I skipped this part.
+// Every agent is on a single thread. 
+// Agents can get in or out of the elevator only when the door is open.
+// Elevator has simulation of opening and closing the doors. I added a security pass which lets agents out of the elevator.
+// Agents go up and down for a period of time. After that a message shows and whereever an agent is calls the elevator.
+// For every floor it is called the elevator goes to the ground level (0) so the agents can leave.
+
+// There might be some bugs in calling or leaving the elevator, but rarely.
+
 var rand = new Random();
 
 CancellationTokenSource cts = new CancellationTokenSource();
@@ -13,16 +23,18 @@ var callElevator = new ManualResetEvent(false);
 Barrier barrier = new Barrier(0);
 
 var button = new Button();
-var elevator = new Elevator(callElevator, button);
+var elevator = new Elevator(callElevator, button, barrier, callElevator, getInTheElevator);
 var agentsInBase = new List<Agent>();
 
-Parallel.For(0, 2, i =>
+var numberOfAgents = 10;
+
+
+Parallel.For(0, numberOfAgents, i =>
 {
     agentsInBase.Add(new Agent("00" + i.ToString(), (SecurityLevelEnum)rand.Next(0, 3), elevator));
 });
 
-
-elevator.Start(token, getInTheElevator, barrier);
+elevator.Start(token);
 
 foreach (var agent in agentsInBase)
 {
@@ -75,9 +87,9 @@ foreach (var agent in agentsInBase)
 }
 
 
-Thread.Sleep(rand.Next(10000, 30000));
-cts.Cancel();
+Thread.Sleep(rand.Next(10000, 35000));
 Console.WriteLine($"-----------Agents are going home.-----------");
+cts.Cancel();
 
 
 

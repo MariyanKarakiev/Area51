@@ -11,22 +11,33 @@ namespace Area51
 {
     public class Elevator
     {
-        private object obj = new object();
-        private Button button;
+        object obj = new object();
+
+        Button button;
+        Barrier barrier;
         ManualResetEvent callElevator;
+        ManualResetEvent getInTheElevator;
+
+
+        public Elevator(
+              ManualResetEvent _leaveElevator
+            , Button _button
+            , Barrier _barrier
+            , ManualResetEvent _callElevator
+            , ManualResetEvent _getInTheElevator)
+        {
+            callElevator = _leaveElevator;
+            button = _button;
+            barrier = _barrier;
+            callElevator = _callElevator;
+            getInTheElevator = _getInTheElevator;
+        }
+
         public int CurrentFloor { get; private set; }
         public List<int> Queue { get; set; } = new List<int>();
         public List<Agent> AgentsOnBoard { get; set; } = new List<Agent>();
 
-        public Elevator(ManualResetEvent _leaveElevator, Button _button)
-        {
-            callElevator = _leaveElevator;
-            button = _button;
-        }
-
-        // HttpClient implements IDisposable by mistake. Use it with static 
-        //Mark Troegisen 
-        public void Start(CancellationToken token, ManualResetEvent getInTheElevator, Barrier countdownEvent)
+        public void Start(CancellationToken token)
         {
             var elevatorThr = new Thread(() =>
             {
@@ -43,7 +54,6 @@ namespace Area51
 
                     lock (Queue)
                     {
-                        // var uniqueElementsQueue = Queue.Distinct().ToList();
                         if (Queue.Count == 0)
                         {
                             continue;
@@ -64,8 +74,11 @@ namespace Area51
                     }
                     else
                     {
-                        Queue.RemoveAll(c => c == CurrentFloor);
-                        OpenDoor(CurrentFloor, getInTheElevator, countdownEvent);
+                        lock (Queue)
+                        {
+                            Queue.RemoveAll(c => c == CurrentFloor);
+                        }
+                        OpenDoor(CurrentFloor, token);
                     }
                     Thread.Sleep(1000);
                 }
@@ -74,7 +87,7 @@ namespace Area51
         }
 
 
-        public void OpenDoor(int floor, ManualResetEvent getInTheElevator, Barrier countdownEvent)
+        public void OpenDoor(int floor, CancellationToken token)
         {
             Console.WriteLine($"Door opens!");
             getInTheElevator.Set();
@@ -118,7 +131,15 @@ namespace Area51
                                 agentsWithoutAccess.ForEach(a =>
                                 {
                                     a.CurrentFloor = CurrentFloor;
-                                    a.SelectFloor(button);
+                                    if (token.IsCancellationRequested)
+                                    {
+                                        a.SelectFloor(0, button);
+                                    }
+                                    else
+                                    {
+                                        a.SelectFloor(button);
+
+                                    }
                                 });
                             }
                         }
@@ -131,8 +152,8 @@ namespace Area51
                 Console.WriteLine($"Elevator is empty!");
             }
 
-            countdownEvent.AddParticipant();
-            countdownEvent.SignalAndWait(1000);
+            barrier.AddParticipant();
+            barrier.SignalAndWait(1000);
 
             Console.WriteLine($"Door closes!");
         }
